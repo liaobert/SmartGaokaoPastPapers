@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ kp.kp_name }} - {{ subject.subject_name }}</title>
+    <link rel="stylesheet" href="{{ base }}/static/css/style.css">
+    <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+      options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] }
+    };
+    </script>
+    <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+    <script>
+    window.__fitQMedia = function (img) {
+      if (!img || !img.naturalWidth) return;
+      var w = img.naturalWidth, h = img.naturalHeight;
+      if (h > 56 || (w > 160 && h > 36)) {
+        img.classList.add('q-media-figure');
+        img.alt = img.alt === '公式' ? '示意图' : img.alt;
+      }
+    };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <nav class="breadcrumb">
+                <a href="{{ base }}/">首页</a> / 
+                <a href="{{ base }}/subject/{{ subject.subject_code }}">{{ subject.subject_name }}</a> / 
+                <span>{{ kp.kp_name }}</span>
+            </nav>
+            <h1>{{ kp.kp_name }}</h1>
+            <div class="kp-meta">
+                {% if kp.difficulty_level %}
+                <span class="tag tag-difficulty">难度: {{ kp.difficulty_level }}/5</span>
+                {% endif %}
+                {% if kp.importance_level %}
+                <span class="tag tag-importance">重要性: {{ kp.importance_level }}/5</span>
+                {% endif %}
+                <span class="tag tag-level">层级: 第{{ kp.kp_level }}级</span>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <section class="kp-detail-section">
+                <h2>📝 知识点解析</h2>
+                <div class="kp-description">
+                    {{ kp.description | default('暂无详细解析，正在完善中...', true) }}
+                </div>
+            </section>
+
+            {% if exam_points %}
+            <section class="exam-points-section">
+                <h2>🎯 考点</h2>
+                <div class="exam-points-list">
+                    {% for ep in exam_points %}
+                    <div class="exam-point-card">
+                        <h3>{{ ep.ep_name }}</h3>
+                        <p>{{ ep.description }}</p>
+                        <div class="ep-meta">
+                            <span class="tag">题型: {{ ep.exam_type }}</span>
+                            <span class="tag tag-difficulty">难度: {{ ep.difficulty_level }}/5</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            <section class="questions-section">
+                <h2>📋 相关高考真题</h2>
+                <p class="section-desc">共 {{ questions|length }} 道题目（显示前50道）</p>
+                <div class="questions-list">
+                    {% for q in questions %}
+                    <div class="question-item">
+                        <div class="question-header">
+                            <span class="question-year">{{ q.year }}年</span>
+                            <span class="question-region">{{ q.region }}</span>
+                            <span class="question-type">{{ q.question_type }}</span>
+                            <span class="question-num">第{{ q.question_number }}题</span>
+                        </div>
+                        <div class="question-preview">
+                            {{ (q.question_text[:180] if q.question_text else '') | rich | safe }}{% if q.question_text and q.question_text|length > 180 %}...{% endif %}
+                        </div>
+                        <a href="{{ base }}/question/{{ q.question_id }}" class="view-detail-btn">查看详情 →</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

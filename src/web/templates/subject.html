@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subject.subject_name }} - 高考真题库系统</title>
+    <link rel="stylesheet" href="{{ base }}/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <nav class="breadcrumb">
+                <a href="{{ base }}/">首页</a> / <span>{{ subject.subject_name }}</span>
+            </nav>
+            <h1>{{ subject.subject_name }} 知识图谱</h1>
+        </header>
+
+        <div class="subject-layout">
+            <aside class="sidebar">
+                <div class="tree-container">
+                    <h3>知识结构</h3>
+                    <div class="tree" id="knowledge-tree">
+                        {% for semester in semesters %}
+                        <div class="tree-node semester-node">
+                            <div class="node-label semester-label" onclick="toggleNode(this)">
+                                <span class="toggle-icon">▼</span>
+                                <span class="node-icon">📚</span>
+                                <span class="node-text">{{ semester.semester_name }}</span>
+                            </div>
+                            <div class="node-children">
+                                {% set sem_id = semester.id %}
+                                {% for chapter in chapters if chapter.semester_id == sem_id %}
+                                <div class="tree-node chapter-node">
+                                    <div class="node-label chapter-label" onclick="toggleNode(this)">
+                                        <span class="toggle-icon">▼</span>
+                                        <span class="node-icon">📖</span>
+                                        <span class="node-text">{{ chapter.chapter_name }}</span>
+                                    </div>
+                                    <div class="node-children">
+                                        {% set ch_id = chapter.id %}
+                                        {% for kp in knowledge_points if kp.chapter_id == ch_id %}
+                                        <div class="tree-node kp-node">
+                                            <a href="{{ base }}/knowledge/{{ kp.kp_id }}" class="node-label kp-label">
+                                                <span class="node-icon">📌</span>
+                                                <span class="node-text">{{ kp.kp_name }}</span>
+                                                {% if kp.importance_level >= 4 %}
+                                                <span class="badge badge-important">重点</span>
+                                                {% endif %}
+                                            </a>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </aside>
+
+            <main class="main-content">
+                <div class="welcome-panel">
+                    <h2>{{ subject.subject_name }}</h2>
+                    <p>请在左侧选择知识点，查看详细解析和相关真题。</p>
+                    <div class="subject-stats">
+                        <div class="stat-item">
+                            <span class="stat-value">{{ semesters|length }}</span>
+                            <span class="stat-name">学期/模块</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">{{ chapters|length }}</span>
+                            <span class="stat-name">章节</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">{{ knowledge_points|length }}</span>
+                            <span class="stat-name">知识点</span>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="{{ base }}/static/js/tree.js"></script>
+</body>
+</html>

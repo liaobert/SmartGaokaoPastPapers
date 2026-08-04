@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第{{ question.question_number }}题 - {{ subject.subject_name }}</title>
+    <link rel="stylesheet" href="{{ base }}/static/css/style.css">
+    <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+      options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] }
+    };
+    </script>
+    <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+    <script>
+    window.__fitQMedia = function (img) {
+      if (!img || !img.naturalWidth) return;
+      var w = img.naturalWidth, h = img.naturalHeight;
+      // 物理等学科示意图：按题干文字宽度缩放，不撑破边界
+      if (h > 56 || (w > 160 && h > 36)) {
+        img.classList.add('q-media-figure');
+        img.alt = img.alt === '公式' ? '示意图' : img.alt;
+      }
+    };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <nav class="breadcrumb">
+                <a href="{{ base }}/">首页</a> / 
+                <a href="{{ base }}/subject/{{ subject.subject_code }}">{{ subject.subject_name }}</a> / 
+                <span>题目详情</span>
+            </nav>
+            <h1>第{{ question.question_number }}题</h1>
+            <div class="question-meta">
+                <span class="tag">{{ question.paper_title }}</span>
+                <span class="tag">{{ question.year }}年</span>
+                <span class="tag">{{ question.region }}</span>
+                <span class="tag tag-type">{{ question.question_type }}</span>
+                {% if question.difficulty_level %}
+                <span class="tag tag-difficulty">难度: {{ question.difficulty_level }}/5</span>
+                {% endif %}
+                {% if question.score_value %}
+                <span class="tag tag-score">{{ question.score_value }}分</span>
+                {% endif %}
+            </div>
+        </header>
+
+        <main class="main-content">
+            <section class="question-detail-section">
+                <h2>📝 题目</h2>
+                <div class="question-content">
+                    <div class="question-text">
+                        {{ question.question_text | rich | safe }}
+                    </div>
+                    
+                    {% set gallery = images | selectattr('image_type', 'ne', 'formula') | list %}
+                    {% if gallery %}
+                    <div class="question-images">
+                        {% for img in gallery %}
+                        <div class="question-image">
+                            <img src="{{ base }}/media/{{ img.image_path }}" alt="题目图片{{ loop.index }}">
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            {% if question.answer_text %}
+            <section class="answer-section">
+                <h2>✅ 答案</h2>
+                <div class="answer-content">
+                    {{ question.answer_text | rich | safe }}
+                </div>
+            </section>
+            {% endif %}
+
+            {% if question.analysis_text %}
+            <section class="analysis-section">
+                <h2>💡 解析</h2>
+                <div class="analysis-content">
+                    {{ question.analysis_text | rich | safe }}
+                </div>
+            </section>
+            {% endif %}
+
+            {% if related_kps %}
+            <section class="related-kps">
+                <h3>🔗 相关知识点</h3>
+                <div class="kp-tags">
+                    {% for kp in related_kps %}
+                    <a href="{{ base }}/knowledge/{{ kp.kp_id }}" class="kp-tag">
+                        {{ kp.kp_name }}
+                        <span class="score">{% if kp.relevance_score is not none %}{{ "%.0f%%"|format(kp.relevance_score * 100) }}{% else %}—{% endif %}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            <section class="question-info-section">
+                <h2>📊 题目信息</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">题目ID</span>
+                        <span class="info-value">{{ question.question_id }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">题型</span>
+                        <span class="info-value">{{ question.question_type }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">年份</span>
+                        <span class="info-value">{{ question.year }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">地区</span>
+                        <span class="info-value">{{ question.region }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">有图片</span>
+                        <span class="info-value">{{ '是' if question.has_image else '否' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">来源</span>
+                        <span class="info-value">{{ question.source_type }}</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

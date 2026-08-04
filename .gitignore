@@ -1,0 +1,44 @@
+# macOS
+.DS_Store
+._*
+**/._*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ???????????????????
+data/
+output/
+
+# ??????????????????
+assets/question_media/
+database/*.db
+database/*.db-shm
+database/*.db-wal
+
+# ??/??
+*.log
+.tmp/
+/tmp/
+.env
+.env.*
+!/.env.example
+
+# 本地部署配置（含服务器信息）
+deploy/deploy.env

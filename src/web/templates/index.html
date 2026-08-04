@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高考真题库系统</title>
+    <link rel="stylesheet" href="{{ base }}/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>📚 高考真题库系统</h1>
+            <p class="subtitle">知识图谱 + 真题解析 + 智能学习</p>
+        </header>
+
+        <main class="main-content">
+            <section class="subject-section">
+                <h2>选择学科</h2>
+                <div class="subject-grid">
+                    {% for subject in subjects %}
+                    <a href="{{ base }}/subject/{{ subject.subject_code }}" class="subject-card">
+                        <div class="subject-icon">{{ subject.subject_code | get_subject_icon }}</div>
+                        <div class="subject-name">{{ subject.subject_name }}</div>
+                        <div class="subject-desc">知识图谱 · 真题解析</div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="stats-section">
+                <h2>系统概览</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">9</div>
+                        <div class="stat-label">学科</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">538</div>
+                        <div class="stat-label">知识点</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">121</div>
+                        <div class="stat-label">考点</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">4067</div>
+                        <div class="stat-label">试卷</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>© 2024 高考真题库系统 | 智能学习平台</p>
+        </footer>
+    </div>
+</body>
+</html>

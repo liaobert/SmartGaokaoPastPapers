@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>搜索 - 高考真题库系统</title>
+    <link rel="stylesheet" href="{{ base }}/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">
+                    <a href="{{ base }}/">📚 高考真题库</a>
+                </h1>
+                <nav class="nav">
+                    <a href="{{ base }}/">首页</a>
+                    <a href="{{ base }}/search" class="active">搜索</a>
+                </nav>
+            </div>
+        </header>
+
+        <main class="main">
+            <div class="search-page">
+                <h2>题目搜索</h2>
+                
+                <div class="search-form">
+                    <form action="{{ base }}/search" method="get">
+                        <div class="search-input-group">
+                            <input type="text" name="q" value="{{ q }}" placeholder="输入关键词搜索题目..." class="search-input">
+                            <button type="submit" class="search-btn">🔍 搜索</button>
+                        </div>
+                        
+                        <div class="search-filters">
+                            <select name="subject" class="filter-select">
+                                <option value="">全部学科</option>
+                                {% for sub in subjects %}
+                                <option value="{{ sub.subject_code }}" {% if subject == sub.subject_code %}selected{% endif %}>
+                                    {{ sub.subject_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            
+                            <select name="question_type" class="filter-select">
+                                <option value="">全部题型</option>
+                                <option value="选择题" {% if question_type == '选择题' %}selected{% endif %}>选择题</option>
+                                <option value="填空题" {% if question_type == '填空题' %}selected{% endif %}>填空题</option>
+                                <option value="解答题" {% if question_type == '解答题' %}selected{% endif %}>解答题</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+
+                {% if q %}
+                <div class="search-results">
+                    <div class="results-header">
+                        <h3>搜索结果</h3>
+                        <span class="results-count">共找到 {{ total }} 道题</span>
+                    </div>
+
+                    {% if questions %}
+                    <div class="question-list">
+                        {% for q in questions %}
+                        <div class="question-item">
+                            <div class="question-meta">
+                                <span class="question-year">{{ q.year }}</span>
+                                <span class="question-region">{{ q.region }}</span>
+                                <span class="question-subject">{{ q.subject_name }}</span>
+                                {% if q.question_type %}
+                                <span class="question-type">{{ q.question_type }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="question-content">
+                                <a href="{{ base }}/question/{{ q.question_id }}">
+                                    {{ q.question_text[:100] }}{% if q.question_text|length > 100 %}...{% endif %}
+                                </a>
+                            </div>
+                            <div class="question-source">
+                                来源：{{ q.paper_title }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if total_pages > 1 %}
+                    <div class="pagination">
+                        {% if page > 1 %}
+                        <a href="{{ base }}/search?q={{ q }}&subject={{ subject }}&question_type={{ question_type }}&page={{ page - 1 }}" class="page-link">上一页</a>
+                        {% endif %}
+                        
+                        <span class="page-info">第 {{ page }} / {{ total_pages }} 页</span>
+                        
+                        {% if page < total_pages %}
+                        <a href="{{ base }}/search?q={{ q }}&subject={{ subject }}&question_type={{ question_type }}&page={{ page + 1 }}" class="page-link">下一页</a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    {% else %}
+                    <div class="no-results">
+                        <p>😔 没有找到相关题目</p>
+                        <p>试试其他关键词吧</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="search-tips">
+                    <h3>搜索提示</h3>
+                    <ul>
+                        <li>输入关键词搜索题目内容</li>
+                        <li>可以按学科和题型筛选结果</li>
+                        <li>支持模糊匹配，输入部分内容即可</li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>高考真题库系统 © 2024</p>
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,23 @@
+[Unit]
+Description=SmartGaokao Past Papers Web (知识图谱真题库)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/smart-gaokao-pastpapers
+Environment=PYTHONPATH=/opt/smart-gaokao-pastpapers/src
+Environment=GAOKAO_DB=/opt/smart-gaokao-pastpapers/database/gaokao.db
+Environment=APP_BASE_PATH=/pastpapers
+Environment=BIND_HOST=127.0.0.1
+Environment=BIND_PORT=8010
+Environment=MEDIA_DIR=/opt/smart-gaokao-pastpapers/assets/question_media
+Environment=PAPER_DATA_DIR=/opt/smart-gaokao-pastpapers/data/10年高考/数学/原卷版
+ExecStart=/opt/smart-gaokao-pastpapers/.venv/bin/uvicorn web.app:app --host 127.0.0.1 --port 8010 --workers 2
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
