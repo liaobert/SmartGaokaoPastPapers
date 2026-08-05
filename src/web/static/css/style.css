@@ -358,12 +358,55 @@ body {
     border-bottom: 2px solid #f0f0f0;
 }
 
-.kp-description {
+.kp-description,
+.kp-content {
     line-height: 1.8;
     color: #555;
     padding: 20px;
     background: #fafafa;
     border-radius: 8px;
+}
+
+.kp-summary {
+    margin: 0 0 12px;
+    color: #666;
+    font-size: 15px;
+}
+
+.kp-content h3 {
+    margin: 0 0 14px;
+    font-size: 20px;
+    color: #222;
+}
+
+.kp-content h4 {
+    margin: 18px 0 8px;
+    font-size: 16px;
+    color: #333;
+}
+
+.kp-content p {
+    margin: 0 0 10px;
+}
+
+.kp-content ul,
+.kp-content ol {
+    margin: 0 0 12px;
+    padding-left: 1.4em;
+}
+
+.kp-content li {
+    margin: 4px 0;
+}
+
+.kp-content strong {
+    color: #222;
+    font-weight: 600;
+}
+
+.kp-empty {
+    margin: 0;
+    color: #999;
 }
 
 /* 考点卡片 */

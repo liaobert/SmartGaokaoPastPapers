@@ -46,8 +46,15 @@
         <main class="main-content">
             <section class="kp-detail-section">
                 <h2>📝 知识点解析</h2>
-                <div class="kp-description">
-                    {{ kp.description | default('暂无详细解析，正在完善中...', true) }}
+                {% if kp.description %}
+                <p class="kp-summary">{{ kp.description }}</p>
+                {% endif %}
+                <div class="kp-content">
+                    {% if kp.content %}
+                    {{ kp.content | md | safe }}
+                    {% else %}
+                    <p class="kp-empty">暂无详细解析，正在完善中...</p>
+                    {% endif %}
                 </div>
             </section>
 

@@ -123,6 +123,76 @@ def render_rich_text(text: str) -> str:
 templates.env.filters['rich'] = render_rich_text
 
 
+def render_markdown_lite(text: str) -> str:
+    """轻量 Markdown→HTML（知识点详细解析：标题/列表/加粗/段落）。"""
+    import html
+    import re as _re
+    if not text:
+        return ""
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    out = []
+    in_ul = in_ol = False
+
+    def close_lists():
+        nonlocal in_ul, in_ol
+        if in_ul:
+            out.append("</ul>")
+            in_ul = False
+        if in_ol:
+            out.append("</ol>")
+            in_ol = False
+
+    def inline_fmt(s: str) -> str:
+        s = html.escape(s)
+        s = _re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", s)
+        return s
+
+    for raw in lines:
+        line = raw.rstrip()
+        if not line.strip():
+            close_lists()
+            continue
+        if line.startswith("### "):
+            close_lists()
+            out.append("<h4>%s</h4>" % inline_fmt(line[4:].strip()))
+            continue
+        if line.startswith("## "):
+            close_lists()
+            out.append("<h3>%s</h3>" % inline_fmt(line[3:].strip()))
+            continue
+        if line.startswith("# "):
+            close_lists()
+            out.append("<h3>%s</h3>" % inline_fmt(line[2:].strip()))
+            continue
+        m_ul = _re.match(r"^[-*]\s+(.+)$", line)
+        if m_ul:
+            if in_ol:
+                out.append("</ol>")
+                in_ol = False
+            if not in_ul:
+                out.append("<ul>")
+                in_ul = True
+            out.append("<li>%s</li>" % inline_fmt(m_ul.group(1)))
+            continue
+        m_ol = _re.match(r"^(\d+)\.\s+(.+)$", line)
+        if m_ol:
+            if in_ul:
+                out.append("</ul>")
+                in_ul = False
+            if not in_ol:
+                out.append("<ol>")
+                in_ol = True
+            out.append("<li>%s</li>" % inline_fmt(m_ol.group(2)))
+            continue
+        close_lists()
+        out.append("<p>%s</p>" % inline_fmt(line))
+    close_lists()
+    return "\n".join(out)
+
+
+templates.env.filters['md'] = render_markdown_lite
+
+
 # 全局数据库连接（线程安全的方式：每个请求使用独立连接，但缓存常用数据）
 def get_db():
     """获取数据库连接"""
