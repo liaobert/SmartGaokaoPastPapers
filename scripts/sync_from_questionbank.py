@@ -61,6 +61,23 @@ def export_media(qb: sqlite3.Connection, media_id: str, media_dir: Path) -> str 
     return out.name
 
 
+def _omml_to_plain(raw_ooxml: str) -> str:
+    """Best-effort plain text from OMML when latex/media are missing."""
+    if not raw_ooxml:
+        return ""
+    texts = re.findall(r"<m:t[^>]*>(.*?)</m:t>", raw_ooxml)
+    if not texts:
+        texts = re.findall(r"<w:t[^>]*>(.*?)</w:t>", raw_ooxml)
+    s = "".join(texts)
+    s = (
+        s.replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&amp;", "&")
+        .replace("&quot;", '"')
+    )
+    return s.strip()
+
+
 def content_to_rich(qb: sqlite3.Connection, content_json: str, media_dir: Path):
     blocks = json.loads(content_json)
     parts, media_files = [], []
@@ -82,11 +99,13 @@ def content_to_rich(qb: sqlite3.Connection, content_json: str, media_dir: Path):
                     elif latex:
                         line.append("$%s$" % latex)
                     else:
-                        line.append("「公式」")
+                        plain = _omml_to_plain(run.get("raw_ooxml") or "")
+                        line.append(("$%s$" % plain) if plain else "「公式」")
                 elif latex:
                     line.append("$%s$" % latex)
                 else:
-                    line.append("「公式」")
+                    plain = _omml_to_plain(run.get("raw_ooxml") or "")
+                    line.append(("$%s$" % plain) if plain else "「公式」")
         text = "".join(line).rstrip()
         if text:
             parts.append(text)
@@ -95,6 +114,22 @@ def content_to_rich(qb: sqlite3.Connection, content_json: str, media_dir: Path):
     while lines and re.match(r"^[一二三四五六七八九十]+[、.]", lines[0]):
         lines.pop(0)
     rich = "\n".join(lines).strip()
+    # drop trailing answer/analysis blocks often appended in 解析版
+    for mark in (
+        "\n【答案】",
+        "\n【解析】",
+        "\n【详解】",
+        "\n【分析】",
+        "\n【知识点】",
+        "【答案】",
+        "【解析】【解答】",
+    ):
+        i = rich.find(mark)
+        if i >= 0:
+            rich = rich[:i].rstrip()
+            break
+    # normalize "12{{MEDIA:...}} 设" -> "12. 设"
+    rich = re.sub(r"^(\d+)\{\{MEDIA:[^}]+\}\}\s*", r"\1. ", rich)
     return rich, media_files
 
 

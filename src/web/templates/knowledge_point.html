@@ -6,21 +6,107 @@
     <title>{{ kp.kp_name }} - {{ subject.subject_name }}</title>
     <link rel="stylesheet" href="{{ base }}/static/css/style.css">
     <script>
+    // MathJax 全局配置
     window.MathJax = {
-      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
-      options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] }
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true,
+        packages: { '[+]': ['ams', 'amssymb', 'boldsymbol', 'cancel', 'color', 'mathtools', 'mhchem', 'textmacros'] }
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'tex2jax_ignore',
+        processHtmlClass: 'tex2jax_process'
+      },
+      chtml: {
+        scale: 1,
+        minScale: 0.5,
+        mtextInheritFont: true,
+        matchFontHeight: true
+      },
+      startup: {
+        typeset: false,
+        pageReady: function() {
+          return MathJax.startup.defaultPageReady().then(function() {
+            window.__mathjaxReady = true;
+            document.dispatchEvent(new CustomEvent('mathjax-ready'));
+          });
+        }
+      }
     };
     </script>
-    <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+    <!-- 优先加载 MathJax -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" async></script>
+    <!-- 备用CDN -->
     <script>
+    (function() {
+      var timeout = setTimeout(function() {
+        if (!window.MathJax || !window.MathJax.version) {
+          var script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml-full.js';
+          script.async = true;
+          document.head.appendChild(script);
+        }
+      }, 5000);
+      window.addEventListener('mathjax-ready', function() {
+        clearTimeout(timeout);
+      });
+    })();
+    </script>
+    <script>
+    // 图片自适应处理函数
     window.__fitQMedia = function (img) {
       if (!img || !img.naturalWidth) return;
       var w = img.naturalWidth, h = img.naturalHeight;
-      if (h > 56 || (w > 160 && h > 36)) {
+      var ratio = w / h;
+      
+      // 宽高比大于4的宽公式，单独成行显示
+      if (ratio > 4 && w > 200) {
+        img.classList.add('q-media-wide');
+        img.classList.remove('q-media-figure');
+        img.alt = img.alt === '公式' ? '公式' : img.alt;
+      }
+      // 明显的大示意图当块级图
+      else if ((h > 140 && w > 220) || (w > 360 && h > 100) || h > 220) {
         img.classList.add('q-media-figure');
+        img.classList.remove('q-media-wide');
         img.alt = img.alt === '公式' ? '示意图' : img.alt;
+      } else {
+        img.classList.remove('q-media-figure');
+        img.classList.remove('q-media-wide');
       }
     };
+
+    // 公式渲染降级
+    window.__renderMathWithFallback = function() {
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        MathJax.typesetPromise().catch(function(err) {
+          console.warn('MathJax 渲染失败，使用图片降级:', err);
+          document.querySelectorAll('.q-latex-fallback').forEach(function(el) {
+            el.style.display = 'inline';
+          });
+        });
+      } else {
+        console.warn('MathJax 未加载，使用图片降级');
+        document.querySelectorAll('.q-latex-fallback').forEach(function(el) {
+          el.style.display = 'inline';
+        });
+      }
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(window.__renderMathWithFallback, 100);
+      });
+    } else {
+      setTimeout(window.__renderMathWithFallback, 100);
+    }
+
+    window.addEventListener('mathjax-ready', function() {
+      window.__renderMathWithFallback();
+    });
     </script>
 </head>
 <body>
@@ -88,7 +174,7 @@
                             <span class="question-type">{{ q.question_type }}</span>
                             <span class="question-num">第{{ q.question_number }}题</span>
                         </div>
-                        <div class="question-preview">
+                        <div class="question-preview tex2jax_process">
                             {{ (q.question_text[:180] if q.question_text else '') | rich | safe }}{% if q.question_text and q.question_text|length > 180 %}...{% endif %}
                         </div>
                         <a href="{{ base }}/question/{{ q.question_id }}" class="view-detail-btn">查看详情 →</a>

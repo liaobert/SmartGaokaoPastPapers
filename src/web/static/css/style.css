@@ -937,25 +937,58 @@ body {
 }
 
 
-/* 题干同行：小公式/符号 与文字同高 */
+/* 题干同行：公式图与正文字号对齐，避免偏大 */
 .question-text img.q-media,
 .answer-content img.q-media,
 .analysis-content img.q-media,
 .question-preview img.q-media,
 img.q-media {
     display: inline !important;
-    height: 1.15em !important;
-    max-height: 1.15em !important;
+    height: 1em !important;
+    max-height: 1.1em !important;
     width: auto !important;
-    max-width: 12em !important;
-    margin: 0 0.15em !important;
+    max-width: 10em !important;
+    margin: 0 0.1em !important;
     padding: 0 !important;
     border: 0 !important;
-    vertical-align: -0.2em !important;
+    vertical-align: -0.15em !important;
     object-fit: contain !important;
     object-position: center !important;
     background: transparent !important;
     box-shadow: none !important;
+}
+
+/* MathJax 行内公式：与正文字号一致 */
+.question-text .q-latex,
+.answer-content .q-latex,
+.analysis-content .q-latex,
+.question-preview .q-latex {
+    display: inline;
+    font-size: 1em;
+    line-height: inherit;
+    vertical-align: baseline;
+}
+.question-text mjx-container,
+.answer-content mjx-container,
+.analysis-content mjx-container,
+.question-preview mjx-container,
+.question-text .MathJax,
+.answer-content .MathJax,
+.analysis-content .MathJax,
+.question-preview .MathJax {
+    display: inline !important;
+    font-size: 1em !important;
+    margin: 0 0.05em !important;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+.question-text mjx-container[display="true"],
+.answer-content mjx-container[display="true"],
+.analysis-content mjx-container[display="true"] {
+    display: block !important;
+    margin: 0.35em 0 !important;
+    font-size: 1em !important;
 }
 
 /* 示意图/插图：不超过题干文字区域宽度 */
@@ -999,4 +1032,301 @@ img.q-media.q-media-figure {
     vertical-align: -0.15em;
     margin: 0 2px;
     box-sizing: border-box;
+}
+
+/* ==================== 数学公式显示优化 ==================== */
+
+/* 确保题目内容完整显示，不被截断 */
+.question-content,
+.answer-content,
+.analysis-content {
+    overflow: visible !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    word-wrap: normal;
+    overflow-wrap: normal;
+    white-space: normal;
+}
+
+.question-text {
+    overflow: visible !important;
+    word-wrap: normal;
+    overflow-wrap: normal;
+    white-space: normal;
+    line-height: 2;
+    font-size: 16px;
+}
+
+/* MathJax 公式容器优化 */
+.question-text mjx-container,
+.answer-content mjx-container,
+.analysis-content mjx-container,
+.question-preview mjx-container {
+    display: inline !important;
+    font-size: 1.05em !important;
+    margin: 0 0.1em !important;
+    vertical-align: -0.15em !important;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* 块级公式（独立一行的公式） */
+.question-text mjx-container[display="true"],
+.answer-content mjx-container[display="true"],
+.analysis-content mjx-container[display="true"] {
+    display: block !important;
+    margin: 0.8em auto !important;
+    font-size: 1.1em !important;
+    text-align: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.3em 0;
+}
+
+/* MathJax SVG 优化 */
+.question-text svg,
+.answer-content svg,
+.analysis-content svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* 公式图片（行内）优化 */
+.question-text img.q-media,
+.answer-content img.q-media,
+.analysis-content img.q-media,
+.question-preview img.q-media,
+img.q-media {
+    display: inline-block !important;
+    height: 1.6em !important;
+    min-height: 20px !important;
+    max-height: 2em !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 10px !important;
+    margin: 0 0.2em !important;
+    padding: 0.2em 0.4em !important;
+    border: 1px solid #eee !important;
+    vertical-align: -0.35em !important;
+    object-fit: contain !important;
+    object-position: center center !important;
+    background: #ffffff !important;
+    border-radius: 4px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    image-rendering: -webkit-optimize-contrast !important;
+    image-rendering: crisp-edges !important;
+}
+
+/* 宽公式图片：自动换行显示 */
+.question-text img.q-media.q-media-wide,
+.answer-content img.q-media.q-media-wide,
+.analysis-content img.q-media.q-media-wide {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    max-width: 100% !important;
+    min-height: 40px !important;
+    margin: 1em auto !important;
+    padding: 0.8em !important;
+    border: 1px solid #ddd !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+}
+
+/* 公式图片悬停效果 */
+.question-text img.q-media:hover,
+.answer-content img.q-media:hover,
+.analysis-content img.q-media:hover {
+    background: #fafafa !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
+    transform: scale(1.02);
+    transition: all 0.2s ease;
+    z-index: 10;
+    position: relative;
+}
+
+/* 公式图片加载失败时的样式 */
+.question-text img.q-media[src=""],
+.question-text img.q-media:not([src]) {
+    display: inline-block !important;
+    width: 4em !important;
+    height: 1.5em !important;
+    background: #f5f5f5 !important;
+    border: 1px dashed #ccc !important;
+    content: "公式" !important;
+    text-align: center;
+    line-height: 1.5em;
+    font-size: 0.8em;
+    color: #999;
+}
+
+/* 示意图/插图（块级）优化 */
+.question-text img.q-media.q-media-figure,
+.answer-content img.q-media.q-media-figure,
+.analysis-content img.q-media.q-media-figure,
+.question-preview img.q-media.q-media-figure,
+img.q-media.q-media-figure {
+    display: block !important;
+    height: auto !important;
+    max-height: min(75vh, 500px) !important;
+    width: auto !important;
+    max-width: 100% !important;
+    margin: 1em auto !important;
+    padding: 0.5em !important;
+    vertical-align: middle !important;
+    object-fit: contain !important;
+    border: 1px solid #eee !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+    background: white !important;
+}
+
+/* 公式图片加载失败时的占位 */
+.question-text img.q-media::before,
+.answer-content img.q-media::before,
+.analysis-content img.q-media::before {
+    content: "公式";
+    display: inline-block;
+    padding: 0 0.3em;
+    color: #999;
+    font-size: 0.9em;
+}
+
+/* 选项列表优化 */
+.question-text .options-list {
+    margin: 0.8em 0;
+    padding-left: 0;
+    list-style: none;
+}
+
+.question-text .options-list li {
+    margin: 0.4em 0;
+    padding-left: 0;
+    line-height: 1.8;
+}
+
+/* 题目图片区域优化 */
+.question-images {
+    margin-top: 1.5em;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2em;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.question-image {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    text-align: center;
+    padding: 0.5em;
+    background: #fafafa;
+    border-radius: 8px;
+    border: 1px solid #eee;
+}
+
+.question-image img {
+    max-width: 100%;
+    max-height: 60vh;
+    width: auto;
+    height: auto;
+    display: inline-block;
+    vertical-align: middle;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    object-fit: contain;
+}
+
+/* 答案和解析区域的图片优化 */
+.answer-content img,
+.analysis-content img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0.8em auto;
+    border-radius: 4px;
+}
+
+/* 公式降级显示 */
+.q-latex {
+    display: inline;
+    font-style: normal;
+}
+
+.q-latex-fallback {
+    display: none;
+}
+
+/* 长公式横向滚动 */
+.math-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+    margin: 0.5em 0;
+    padding: 0.2em 0;
+}
+
+.math-scroll::-webkit-scrollbar {
+    height: 6px;
+}
+
+.math-scroll::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.math-scroll::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+}
+
+.math-scroll::-webkit-scrollbar-thumb:hover {
+    background: #aaa;
+}
+
+/* 题目文本的段落间距 */
+.question-text p {
+    margin: 0.5em 0;
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+    .question-text {
+        font-size: 15px;
+        line-height: 1.8;
+    }
+    
+    .question-text mjx-container,
+    .answer-content mjx-container,
+    .analysis-content mjx-container {
+        font-size: 1em !important;
+    }
+    
+    .question-text img.q-media,
+    .answer-content img.q-media,
+    .analysis-content img.q-media {
+        height: 1.1em !important;
+        max-height: 1.3em !important;
+    }
+    
+    .question-image img {
+        max-height: 50vh;
+    }
+}
+
+@media (max-width: 480px) {
+    .question-text {
+        font-size: 14px;
+        line-height: 1.7;
+    }
+    
+    .question-text mjx-container[display="true"],
+    .answer-content mjx-container[display="true"],
+    .analysis-content mjx-container[display="true"] {
+        font-size: 0.95em !important;
+    }
 }

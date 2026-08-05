@@ -6,22 +6,114 @@
     <title>第{{ question.question_number }}题 - {{ subject.subject_name }}</title>
     <link rel="stylesheet" href="{{ base }}/static/css/style.css">
     <script>
+    // MathJax 全局配置
     window.MathJax = {
-      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
-      options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] }
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true,
+        packages: { '[+]': ['ams', 'amssymb', 'boldsymbol', 'cancel', 'color', 'mathtools', 'mhchem', 'textmacros'] }
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'tex2jax_ignore',
+        processHtmlClass: 'tex2jax_process'
+      },
+      chtml: {
+        scale: 1,
+        minScale: 0.5,
+        mtextInheritFont: true,
+        matchFontHeight: true
+      },
+      startup: {
+        typeset: false,  // 手动控制排版时机
+        pageReady: function() {
+          // 页面加载完成后再排版
+          return MathJax.startup.defaultPageReady().then(function() {
+            window.__mathjaxReady = true;
+            // 触发自定义事件
+            document.dispatchEvent(new CustomEvent('mathjax-ready'));
+          });
+        }
+      }
     };
     </script>
-    <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+    <!-- 优先加载 MathJax -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" async></script>
+    <!-- 备用CDN -->
     <script>
+    (function() {
+      var timeout = setTimeout(function() {
+        if (!window.MathJax || !window.MathJax.version) {
+          var script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml-full.js';
+          script.async = true;
+          document.head.appendChild(script);
+        }
+      }, 5000);
+      window.addEventListener('mathjax-ready', function() {
+        clearTimeout(timeout);
+      });
+    })();
+    </script>
+    <script>
+    // 图片自适应处理函数
     window.__fitQMedia = function (img) {
       if (!img || !img.naturalWidth) return;
       var w = img.naturalWidth, h = img.naturalHeight;
-      // 物理等学科示意图：按题干文字宽度缩放，不撑破边界
-      if (h > 56 || (w > 160 && h > 36)) {
+      var ratio = w / h;
+      
+      // 宽高比大于4的宽公式，单独成行显示
+      if (ratio > 4 && w > 200) {
+        img.classList.add('q-media-wide');
+        img.classList.remove('q-media-figure');
+        img.alt = img.alt === '公式' ? '公式' : img.alt;
+      }
+      // 明显的大示意图当块级图
+      else if ((h > 140 && w > 220) || (w > 360 && h > 100) || h > 220) {
         img.classList.add('q-media-figure');
+        img.classList.remove('q-media-wide');
         img.alt = img.alt === '公式' ? '示意图' : img.alt;
+      } else {
+        img.classList.remove('q-media-figure');
+        img.classList.remove('q-media-wide');
       }
     };
+
+    // 公式渲染降级：MathJax渲染失败时显示原图
+    window.__renderMathWithFallback = function() {
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        // 先尝试用MathJax渲染
+        MathJax.typesetPromise().catch(function(err) {
+          console.warn('MathJax 渲染失败，使用图片降级:', err);
+          // 渲染失败时，显示所有公式图片
+          document.querySelectorAll('.q-latex-fallback').forEach(function(el) {
+            el.style.display = 'inline';
+          });
+        });
+      } else {
+        // MathJax未加载，显示所有公式图片
+        console.warn('MathJax 未加载，使用图片降级');
+        document.querySelectorAll('.q-latex-fallback').forEach(function(el) {
+          el.style.display = 'inline';
+        });
+      }
+    };
+
+    // 页面加载完成后执行公式渲染
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(window.__renderMathWithFallback, 100);
+      });
+    } else {
+      setTimeout(window.__renderMathWithFallback, 100);
+    }
+
+    // MathJax加载完成后重新渲染
+    window.addEventListener('mathjax-ready', function() {
+      window.__renderMathWithFallback();
+    });
     </script>
 </head>
 <body>
@@ -51,7 +143,7 @@
             <section class="question-detail-section">
                 <h2>📝 题目</h2>
                 <div class="question-content">
-                    <div class="question-text">
+                    <div class="question-text tex2jax_process">
                         {{ question.question_text | rich | safe }}
                     </div>
                     
@@ -60,7 +152,10 @@
                     <div class="question-images">
                         {% for img in gallery %}
                         <div class="question-image">
-                            <img src="{{ base }}/media/{{ img.image_path }}" alt="题目图片{{ loop.index }}">
+                            <img src="{{ base }}/media/{{ img.image_path }}" 
+                                 alt="题目图片{{ loop.index }}"
+                                 loading="lazy"
+                                 onerror="this.parentElement.style.display='none';">
                         </div>
                         {% endfor %}
                     </div>
@@ -71,7 +166,7 @@
             {% if question.answer_text %}
             <section class="answer-section">
                 <h2>✅ 答案</h2>
-                <div class="answer-content">
+                <div class="answer-content tex2jax_process">
                     {{ question.answer_text | rich | safe }}
                 </div>
             </section>
@@ -80,7 +175,7 @@
             {% if question.analysis_text %}
             <section class="analysis-section">
                 <h2>💡 解析</h2>
-                <div class="analysis-content">
+                <div class="analysis-content tex2jax_process">
                     {{ question.analysis_text | rich | safe }}
                 </div>
             </section>

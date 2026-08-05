@@ -90,13 +90,75 @@ MEDIA_DIR = os.environ.get(
 os.makedirs(MEDIA_DIR, exist_ok=True)
 
 
+_media_latex_cache = {"ts": 0.0, "map": {}}
+
+
+def is_usable_inline_latex(latex: str) -> bool:
+    """过滤明显错误的 OCR 结果，避免把垃圾公式塞进 MathJax。"""
+    if not latex:
+        return False
+    s = latex.strip().strip("$").strip()
+    if not s or len(s) > 120:
+        return False
+    if abs(s.count("{") - s.count("}")) > 2:
+        return False
+    # 多行 array / 显示型公式：行内题干用原图更稳
+    if "begin{array}" in s or "begin{align}" in s or "displaystyle" in s:
+        return False
+    if s.count("\\\\") >= 1:
+        return False
+    if s.count("mathrm") > 4 or "bullet" in s or "oint" in s:
+        return False
+    if s.count("hat{") > 3 or s.count("overset") + s.count("underset") > 2:
+        return False
+    if sum(ch.isalnum() for ch in s) < 2:
+        return False
+    return True
+
+
+def load_media_latex_map(force: bool = False) -> dict:
+    """加载公式图→LaTeX 映射（进程内缓存）。"""
+    now = time.time()
+    if not force and _media_latex_cache["map"] and now - _media_latex_cache["ts"] < 300:
+        return _media_latex_cache["map"]
+    mapping = {}
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        try:
+            rows = conn.execute(
+                "SELECT media_name, latex FROM media_latex "
+                "WHERE latex IS NOT NULL AND TRIM(latex) != ''"
+            ).fetchall()
+        except sqlite3.OperationalError:
+            rows = []
+        conn.close()
+        for name, latex in rows:
+            if not name or not is_usable_inline_latex(latex):
+                continue
+            mapping[name] = latex.strip().strip("$")
+            stem = name.rsplit(".", 1)[0]
+            mapping.setdefault(stem + ".png", mapping[name])
+    except Exception:
+        mapping = _media_latex_cache["map"] or {}
+    _media_latex_cache["map"] = mapping
+    _media_latex_cache["ts"] = now
+    return mapping
+
+
 def render_rich_text(text: str) -> str:
-    """将题干中的 LaTeX / MEDIA 标记转为可展示 HTML。"""
+    """将题干中的 LaTeX / MEDIA 标记转为可展示 HTML。
+
+    若 MEDIA 已在 media_latex 中识别为可用行内公式，则优先渲染 MathJax。
+    同时提供图片降级方案，确保公式总能显示。
+    """
     import html
     import re as _re
     if not text:
         return ""
+    latex_map = load_media_latex_map()
     s = html.escape(text)
+    
+    # 处理填空题下划线
     s = _re.sub(
         r"_{3,}|＿{3,}",
         lambda m: (
@@ -105,18 +167,68 @@ def render_rich_text(text: str) -> str:
         ),
         s,
     )
+    
     def _media_sub(m):
         name = m.group(1)
         low = name.lower()
+        stem = name.rsplit(".", 1)[0]
+        
+        # 查找对应的LaTeX公式
+        latex = (
+            latex_map.get(name)
+            or latex_map.get(stem + ".png")
+            or latex_map.get(stem + ".jpg")
+            or latex_map.get(stem + ".wmf")
+            or latex_map.get(stem + ".emf")
+        )
+        
+        # 确定图片路径（WMF/EMF转PNG）
+        img_name = name
         if low.endswith((".wmf", ".emf")):
-            name = name.rsplit(".", 1)[0] + ".png"
-        src = "%s/media/%s" % (BASE_PATH, name)
+            img_name = stem + ".png"
+        src = "%s/media/%s" % (BASE_PATH, img_name)
+        
+        # 如果有可用的LaTeX公式，优先使用MathJax渲染，同时保留图片作为降级
+        if latex and is_usable_inline_latex(latex):
+            safe_latex = html.escape(latex.strip().strip("$"))
+            # MathJax渲染 + 图片降级（默认隐藏图片，MathJax失败时显示）
+            return (
+                '<span class="q-latex-wrapper" style="display: inline; position: relative;">'
+                '<span class="q-latex">$%s$</span>'
+                '<span class="q-latex-fallback" style="display: none;">'
+                '<img class="q-media" src="%s" alt="公式" loading="lazy" '
+                'onerror="this.style.display=\'inline\';this.onerror=null;" '
+                'onload="window.__fitQMedia&&window.__fitQMedia(this)">'
+                '</span>'
+                '</span>'
+            ) % (safe_latex, src)
+        
+        # 没有LaTeX的，直接使用图片
         return (
             '<img class="q-media" src="%s" alt="公式" loading="lazy" '
+            'onerror="this.style.opacity=\'0.3\';this.style.border=\'1px dashed #ccc\';this.onerror=null;" '
             'onload="window.__fitQMedia&&window.__fitQMedia(this)">' % src
         )
+    
+    # 替换MEDIA标记
     s = _re.sub(r"\{\{MEDIA:([^}]+)\}\}", _media_sub, s)
-    s = s.replace("\n", "<br>\n")
+    
+    # 处理换行：保留段落结构
+    lines = s.split("\n")
+    processed_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped:
+            # 如果行首是选项（A. B. C. D. 等），添加选项样式
+            if _re.match(r'^[A-Z][\.、．]\s*', stripped):
+                processed_lines.append('<div class="option-item" style="margin: 0.3em 0;">' + line + '</div>')
+            else:
+                processed_lines.append(line)
+        else:
+            processed_lines.append('')
+    
+    s = "<br>\n".join(processed_lines)
+    
     return s
 
 
@@ -744,17 +856,93 @@ async def serve_media(media_name: str):
     low = path.lower()
     if low.endswith((".wmf", ".emf")):
         png_path = os.path.splitext(path)[0] + ".png"
-        if (not os.path.isfile(png_path)) and shutil.which("convert"):
+        # 如果PNG已存在且不是空文件，直接返回
+        if os.path.isfile(png_path) and os.path.getsize(png_path) > 100:
+            return FileResponse(png_path, media_type="image/png")
+        
+        # 尝试转换WMF/EMF为PNG
+        success = False
+        
+        # 方法1: 使用libreoffice转换（质量最好，支持EMF）
+        if shutil.which("libreoffice"):
             try:
+                result = subprocess.run(
+                    ["libreoffice", "--headless", "--convert-to", "png", 
+                     "--outdir", MEDIA_DIR, path],
+                    capture_output=True, timeout=120, check=False,
+                )
+                if result.returncode == 0 and os.path.isfile(png_path) and os.path.getsize(png_path) > 100:
+                    success = True
+            except Exception:
+                pass
+        
+        # 方法2: 使用inkscape转换（支持EMF）
+        if not success and shutil.which("inkscape"):
+            try:
+                result = subprocess.run(
+                    ["inkscape", path, "--export-type=png", 
+                     "--export-filename", png_path, "--export-dpi", "300"],
+                    capture_output=True, timeout=120, check=False,
+                )
+                if result.returncode == 0 and os.path.isfile(png_path) and os.path.getsize(png_path) > 100:
+                    success = True
+            except Exception:
+                pass
+        
+        # 方法3: 使用ImageMagick的convert命令（备选方案）
+        if not success and shutil.which("convert"):
+            try:
+                # 高分辨率转换，保留更多细节
+                # 对于大文件（示意图），使用较低的DPI以避免文件过大
+                file_size = os.path.getsize(path)
+                if file_size > 1000000:  # 大于1MB的可能是示意图
+                    density = 150
+                    max_height = 600
+                else:  # 小文件可能是公式
+                    density = 600
+                    max_height = 200
+                
+                result = subprocess.run(
+                    ["convert", 
+                     "-density", str(density),  # 根据文件大小调整DPI
+                     "-background", "white",  # 白色背景
+                     "-alpha", "remove",  # 移除alpha通道
+                     "-alpha", "off",  # 关闭alpha
+                     "-flatten",  # 扁平化图层
+                     path, 
+                     "-trim", "+repage",  # 裁剪空白
+                     "-resize", f"x{max_height}>",  # 最大高度
+                     "-bordercolor", "white", "-border", "8",  # 增加白色边框
+                     "-quality", "95",  # 高质量
+                     png_path],
+                    capture_output=True, timeout=60, check=False,
+                )
+                if result.returncode == 0 and os.path.isfile(png_path) and os.path.getsize(png_path) > 100:
+                    success = True
+            except Exception:
+                pass
+        
+        # 如果转换成功，优化图片
+        if success and shutil.which("convert"):
+            try:
+                # 后处理：优化图片，去除多余空白，确保白色背景
                 subprocess.run(
-                    ["convert", "-density", "200", path, "-trim", "+repage",
-                     "-resize", "x48>", "-bordercolor", "white", "-border", "2", png_path],
+                    ["convert", png_path,
+                     "-background", "white",
+                     "-alpha", "remove",
+                     "-alpha", "off",
+                     "-flatten",
+                     "-trim", "+repage",
+                     "-bordercolor", "white", "-border", "4",
+                     png_path],
                     capture_output=True, timeout=30, check=False,
                 )
             except Exception:
                 pass
-        if os.path.isfile(png_path) and os.path.getsize(png_path) > 50:
+        
+        if os.path.isfile(png_path) and os.path.getsize(png_path) > 100:
             return FileResponse(png_path, media_type="image/png")
+        
         # 无法转换时返回原文件（多数浏览器仍无法显示）
         return FileResponse(path)
 
